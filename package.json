@@ -1,0 +1,61 @@
+{
+  "name": "boosthub-discord-services",
+  "version": "1.0.0",
+  "description": "A modern, responsive website for selling Discord services with glassmorphism design and Sellauth integration",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server . -p 3000 -o",
+    "dev": "npx live-server --port=3000 --entry-file=index.html",
+    "build": "npm run minify-css && npm run minify-js",
+    "minify-css": "npx cleancss-cli -o css/styles.min.css css/styles.css",
+    "minify-js": "npx uglify-js js/main.js js/sellauth-integration.js -o js/bundle.min.js -c -m",
+    "optimize-images": "npx imagemin assets/images/* --out-dir=assets/images/optimized",
+    "validate-html": "npx html-validate index.html",
+    "lint-css": "npx stylelint css/*.css",
+    "lint-js": "npx eslint js/*.js",
+    "test": "npm run validate-html && npm run lint-css && npm run lint-js",
+    "deploy": "npm run build && npm run test",
+    "serve-production": "npx http-server . -p 8080 -g"
+  },
+  "keywords": [
+    "discord",
+    "nitro",
+    "server-boosts",
+    "sellauth",
+    "payment-gateway",
+    "glassmorphism",
+    "modern-design",
+    "responsive-website",
+    "ecommerce"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/boosthub-discord-services.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/boosthub-discord-services/issues"
+  },
+  "homepage": "https://yourusername.github.io/boosthub-discord-services",
+  "devDependencies": {
+    "clean-css-cli": "^5.6.2",
+    "eslint": "^8.57.0",
+    "html-validate": "^8.7.4",
+    "http-server": "^14.1.1",
+    "imagemin-cli": "^7.0.0",
+    "live-server": "^1.2.2",
+    "stylelint": "^16.1.0",
+    "stylelint-config-standard": "^36.0.0",
+    "uglify-js": "^3.17.4"
+  },
+  "browserslist": [
+    "defaults",
+    "not IE 11",
+    "not dead"
+  ],
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  }
+}
