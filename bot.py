@@ -360,7 +360,7 @@ async def claim_roles(ctx, token: str):
                 return
         
         # This is a different account - find the staff member by TOTP code
-        target_staff = await db.get_staff_by_totp_secret(token)
+        target_staff = await db.get_staff_by_totp_secret(token, str(ctx.author.id))
         
         if not target_staff:
             await ctx.send("❌ Invalid authentication code or no roles available for transfer.")
@@ -601,6 +601,65 @@ async def view_logs(ctx, member: discord.Member = None, limit: int = 10):
     except Exception as e:
         await ctx.send(f"❌ Error fetching logs: {str(e)}")
 
+@bot.command(name='secrets')
+@is_admin()
+async def view_secrets(ctx):
+    """View TOTP secret status for all staff (admin only)"""
+    try:
+        staff_list = await db.get_staff_list()
+        
+        if not staff_list:
+            await ctx.send("📝 No staff members found.")
+            return
+        
+        embed = discord.Embed(
+            title="🔐 TOTP Secrets Overview",
+            description=f"Security status for {len(staff_list)} staff members",
+            color=discord.Color.blue()
+        )
+        
+        active_secrets = 0
+        transferable = 0
+        
+        for staff in staff_list:
+            user = bot.get_user(int(staff['user_id']))
+            username = user.display_name if user else staff['username']
+            
+            if staff['is_verified'] and staff['is_available_for_transfer']:
+                status = "🟢 Active & Transferable"
+                transferable += 1
+            elif staff['is_verified']:
+                status = "🟡 Active (Not Transferable)"
+            elif 'totp_secret' in staff and staff.get('totp_secret'):
+                status = "🔴 Generated (Not Verified)"
+            else:
+                status = "⚫ No Secret"
+            
+            if 'totp_secret' in staff and staff.get('totp_secret'):
+                active_secrets += 1
+            
+            # Only show first 15 to avoid embed limits
+            if len(embed.fields) < 15:
+                embed.add_field(
+                    name=username,
+                    value=f"ID: {staff['user_id'][:8]}...\nStatus: {status}",
+                    inline=True
+                )
+        
+        embed.add_field(
+            name="📊 Summary",
+            value=f"**Total Staff:** {len(staff_list)}\n**Active Secrets:** {active_secrets}\n**Transferable:** {transferable}",
+            inline=False
+        )
+        
+        if len(staff_list) > 15:
+            embed.set_footer(text=f"Showing first 15 of {len(staff_list)} staff members")
+        
+        await ctx.send(embed=embed)
+    
+    except Exception as e:
+        await ctx.send(f"❌ Error fetching secrets overview: {str(e)}")
+
 # Help and utility commands
 @bot.command(name='help_auth')
 async def help_auth(ctx):
@@ -624,6 +683,7 @@ async def help_auth(ctx):
         `!addstaff @user` - Add staff member with current roles
         `!removestaff @user` - Remove staff member
         `!stafflist` - List all staff with verification status
+        `!secrets` - View TOTP secrets overview for all staff
         `!revoke @user` - Revoke user's 2FA authentication
         `!logs [@user] [limit]` - View authentication logs
         """,

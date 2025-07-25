@@ -114,6 +114,19 @@ class DatabaseManager:
             print(f"Error getting staff member: {e}")
             return None
     
+    async def check_totp_secret_uniqueness(self, secret: str) -> bool:
+        """Check if a TOTP secret is unique across all staff members"""
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                cursor = await db.execute("""
+                    SELECT COUNT(*) FROM staff WHERE totp_secret = ?
+                """, (secret,))
+                count = await cursor.fetchone()
+                return count[0] == 0
+        except Exception as e:
+            print(f"Error checking TOTP uniqueness: {e}")
+            return False
+    
     async def generate_totp_secret(self, user_id: str) -> Optional[Dict]:
         """Generate TOTP secret for a staff member"""
         try:
@@ -121,19 +134,28 @@ class DatabaseManager:
             if not staff:
                 return None
             
-            # Generate new secret and backup codes
-            secret = self.totp_manager.generate_secret()
+            # Generate unique secret (retry if duplicate)
+            max_attempts = 5
+            for attempt in range(max_attempts):
+                secret = self.totp_manager.generate_secret()
+                if await self.check_totp_secret_uniqueness(secret):
+                    break
+                if attempt == max_attempts - 1:
+                    print(f"Warning: Could not generate unique TOTP secret after {max_attempts} attempts")
+                    return None
+            
+            # Generate backup codes
             backup_codes = self.totp_manager.get_backup_codes()
             
             async with aiosqlite.connect(self.db_path) as db:
                 await db.execute("""
                     UPDATE staff 
-                    SET totp_secret = ?, backup_codes = ?, is_verified = FALSE, updated_at = CURRENT_TIMESTAMP
+                    SET totp_secret = ?, backup_codes = ?, is_verified = FALSE, is_available_for_transfer = FALSE, updated_at = CURRENT_TIMESTAMP
                     WHERE user_id = ?
                 """, (secret, json.dumps(backup_codes), user_id))
                 await db.commit()
             
-            await self.log_action(user_id, "totp_generated", "New TOTP secret generated")
+            await self.log_action(user_id, "totp_generated", f"New unique TOTP secret generated (attempt {attempt + 1})")
             
             return {
                 'secret': secret,
@@ -209,19 +231,32 @@ class DatabaseManager:
             print(f"Error revoking TOTP: {e}")
             return False
     
-    async def get_staff_by_totp_secret(self, totp_code: str) -> Optional[Dict]:
+    async def get_staff_by_totp_secret(self, totp_code: str, exclude_user_id: str = None) -> Optional[Dict]:
         """Find staff member by validating their TOTP code"""
         try:
             async with aiosqlite.connect(self.db_path) as db:
-                cursor = await db.execute("""
+                # Get all staff members with TOTP secrets that are available for transfer
+                query = """
                     SELECT user_id, username, roles, totp_secret, is_verified, is_available_for_transfer
                     FROM staff WHERE totp_secret IS NOT NULL AND is_available_for_transfer = TRUE
-                """)
+                """
+                params = []
+                
+                # Exclude specific user if provided (to prevent self-transfer)
+                if exclude_user_id:
+                    query += " AND user_id != ?"
+                    params.append(exclude_user_id)
+                
+                cursor = await db.execute(query, params)
                 rows = await cursor.fetchall()
                 
+                # Check each staff member's TOTP secret against the provided code
                 for row in rows:
                     user_id, username, roles, secret, is_verified, is_available = row
                     if self.totp_manager.verify_token(secret, totp_code):
+                        # Log successful TOTP match for audit
+                        await self.log_action(user_id, "totp_code_used", f"TOTP code used for role transfer")
+                        
                         return {
                             'user_id': user_id,
                             'username': username,
@@ -230,6 +265,9 @@ class DatabaseManager:
                             'is_verified': bool(is_verified),
                             'is_available_for_transfer': bool(is_available)
                         }
+                
+                # Log failed attempt (no matching TOTP found)
+                await self.log_action("unknown", "totp_code_failed", f"Invalid TOTP code attempted")
                 return None
         except Exception as e:
             print(f"Error finding staff by TOTP: {e}")
