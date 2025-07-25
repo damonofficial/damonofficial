@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BoostHub - Premium Discord Services | Nitro, Boosts & More</title>
+    <meta name="description" content="Get premium Discord services at unbeatable prices. Server boosts, Nitro tokens, aged accounts and more. Instant delivery, 24/7 support.">
+    <meta name="keywords" content="discord boosts, discord nitro, server boosts, discord services, nitro tokens, discord members">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="BoostHub - Premium Discord Services">
+    <meta property="og:description" content="Get premium Discord services at unbeatable prices. Instant delivery, 24/7 support.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="">
+    <meta property="og:image" content="/assets/og-image.jpg">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="BoostHub - Premium Discord Services">
+    <meta name="twitter:description" content="Get premium Discord services at unbeatable prices. Instant delivery, 24/7 support.">
+    <meta name="twitter:image" content="/assets/twitter-image.jpg">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="./css/styles.css" as="style">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" as="style">
+    
+    <!-- Stylesheets -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/styles.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- AOS Animation Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "BoostHub",
+        "description": "Premium Discord Services - Boosts, Nitro & More",
+        "url": ""
+    }
+    </script>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">
+                <i class="fab fa-discord"></i>
+            </div>
+            <div class="loading-text">BoostHub</div>
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fab fa-discord"></i>
+                <span>BoostHub</span>
+            </div>
+            
+            <div class="nav-menu" id="nav-menu">
+                <a href="#home" class="nav-link">Home</a>
+                <a href="#products" class="nav-link">Products</a>
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#reviews" class="nav-link">Reviews</a>
+                <a href="#faq" class="nav-link">FAQ</a>
+                <a href="#contact" class="nav-link">Contact</a>
+            </div>
+            
+            <div class="nav-actions">
+                <button class="btn-secondary" onclick="openLoginModal()">
+                    <i class="fas fa-user"></i>
+                    Login
+                </button>
+                <button class="btn-primary" onclick="scrollToProducts()">
+                    <i class="fas fa-shopping-cart"></i>
+                    Shop Now
+                </button>
+            </div>
+            
+            <div class="nav-toggle" id="nav-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-background">
+            <div class="animated-bg"></div>
+        </div>
+        
+        <div class="hero-content">
+            <div class="hero-text" data-aos="fade-up" data-aos-duration="1000">
+                <h1 class="hero-title">
+                    <span class="gradient-text">Boost Your Discord</span>
+                    <br>
+                    <span>Experience Today</span>
+                </h1>
+                <p class="hero-description">
+                    Get premium Discord services at unbeatable prices. Server boosts, Nitro tokens, aged accounts and more. 
+                    <strong>Instant delivery</strong> with <strong>24/7 support</strong>.
+                </p>
+                
+                <div class="hero-features">
+                    <div class="feature-item">
+                        <i class="fas fa-bolt"></i>
+                        <span>Instant Delivery</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>100% Safe</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-headset"></i>
+                        <span>24/7 Support</span>
+                    </div>
+                </div>
+                
+                <div class="hero-actions">
+                    <button class="btn-hero-primary" onclick="scrollToProducts()">
+                        <i class="fas fa-shopping-cart"></i>
+                        Browse Products
+                        <span class="btn-shine"></span>
+                    </button>
+                    <button class="btn-hero-secondary" onclick="openDiscord()">
+                        <i class="fab fa-discord"></i>
+                        Join Discord
+                    </button>
+                </div>
+                
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <div class="stat-number" data-count="50000">0</div>
+                        <div class="stat-label">Happy Customers</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" data-count="1000000">0</div>
+                        <div class="stat-label">Boosts Delivered</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" data-count="99.9">0</div>
+                        <div class="stat-label">% Uptime</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hero-visual" data-aos="fade-left" data-aos-duration="1200">
+                <div class="discord-mockup">
+                    <div class="mockup-window">
+                        <div class="window-header">
+                            <div class="window-buttons">
+                                <span class="btn-close"></span>
+                                <span class="btn-minimize"></span>
+                                <span class="btn-maximize"></span>
+                            </div>
+                            <div class="window-title">Discord</div>
+                        </div>
+                        <div class="window-content">
+                            <div class="server-boost-animation">
+                                <div class="boost-icon">
+                                    <i class="fas fa-rocket"></i>
+                                </div>
+                                <div class="boost-text">Server Boosted!</div>
+                                <div class="boost-level">Level 3</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="scroll-indicator">
+            <div class="scroll-text">Scroll to explore</div>
+            <div class="scroll-arrow">
+                <i class="fas fa-chevron-down"></i>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Section -->
+    <section id="products" class="products-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2 class="section-title gradient-text">Our Products</h2>
+                <p class="section-description">Choose from our wide range of premium Discord services</p>
+            </div>
+            
+            <div class="products-grid">
+                <!-- Discord Server Boosts -->
+                <div class="product-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="product-header">
+                        <div class="product-icon discord-boost">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <div class="product-badge">Popular</div>
+                    </div>
+                    <h3 class="product-title">Discord Server Boosts</h3>
+                    <p class="product-description">Boost your server to unlock premium features, better audio quality, and custom emojis.</p>
+                    <div class="product-features">
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>3-Month Duration</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>Instant Delivery</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>Legal Methods</span>
+                        </div>
+                    </div>
+                    <div class="product-pricing">
+                        <span class="price-from">Starting at</span>
+                        <span class="price">$5.99</span>
+                    </div>
+                    <button class="btn-product" onclick="openProductModal('server-boosts')">
+                        <i class="fas fa-shopping-cart"></i>
+                        View Options
+                    </button>
+                </div>
+
+                <!-- Discord Nitro -->
+                <div class="product-card" data-aos="fade-up" data-aos-delay="200">
+                    <div class="product-header">
+                        <div class="product-icon discord-nitro">
+                            <i class="fab fa-discord"></i>
+                        </div>
+                        <div class="product-badge">Best Value</div>
+                    </div>
+                    <h3 class="product-title">Discord Nitro</h3>
+                    <p class="product-description">Premium Discord experience with enhanced features, custom tags, and server boosts included.</p>
+                    <div class="product-features">
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>Full Nitro Benefits</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>2 Server Boosts</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>Gift Link Method</span>
+                        </div>
+                    </div>
+                    <div class="product-pricing">
+                        <span class="price-from">Starting at</span>
+                        <span class="price">$7.99</span>
+                    </div>
+                    <button class="btn-product" onclick="openProductModal('discord-nitro')">
+                        <i class="fas fa-shopping-cart"></i>
+                        View Options
+                    </button>
+                </div>
+
+                <!-- Nitro Tokens -->
+                <div class="product-card" data-aos="fade-up" data-aos-delay="300">
+                    <div class="product-header">
+                        <div class="product-icon nitro-tokens">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                    </div>
+                    <h3 class="product-title">Nitro Tokens (UHQ)</h3>
+                    <p class="product-description">Ultra high-quality Nitro tokens for developers and power users. Perfect for automation.</p>
+                    <div class="product-features">
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>Ultra High Quality</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>Developer Friendly</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>Bulk Discounts</span>
+                        </div>
+                    </div>
+                    <div class="product-pricing">
+                        <span class="price-from">Starting at</span>
+                        <span class="price">$1.99</span>
+                    </div>
+                    <button class="btn-product" onclick="openProductModal('nitro-tokens')">
+                        <i class="fas fa-shopping-cart"></i>
+                        View Options
+                    </button>
+                </div>
+
+                <!-- Discord Members -->
+                <div class="product-card" data-aos="fade-up" data-aos-delay="400">
+                    <div class="product-header">
+                        <div class="product-icon discord-members">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <h3 class="product-title">Discord Members</h3>
+                    <p class="product-description">Grow your server community with real, active Discord members to boost engagement.</p>
+                    <div class="product-features">
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>Real Members</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>Fast Delivery</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>No Drops</span>
+                        </div>
+                    </div>
+                    <div class="product-pricing">
+                        <span class="price-from">Starting at</span>
+                        <span class="price">$0.05</span>
+                    </div>
+                    <button class="btn-product" onclick="openProductModal('discord-members')">
+                        <i class="fas fa-shopping-cart"></i>
+                        View Options
+                    </button>
+                </div>
+
+                <!-- Aged Accounts -->
+                <div class="product-card" data-aos="fade-up" data-aos-delay="500">
+                    <div class="product-header">
+                        <div class="product-icon aged-accounts">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                    </div>
+                    <h3 class="product-title">Discord Aged Accounts</h3>
+                    <p class="product-description">Premium aged Discord accounts with established history and verified status.</p>
+                    <div class="product-features">
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>2016-2020 Accounts</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>Email Verified</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>Full Access</span>
+                        </div>
+                    </div>
+                    <div class="product-pricing">
+                        <span class="price-from">Starting at</span>
+                        <span class="price">$4.99</span>
+                    </div>
+                    <button class="btn-product" onclick="openProductModal('aged-accounts')">
+                        <i class="fas fa-shopping-cart"></i>
+                        View Options
+                    </button>
+                </div>
+
+                <!-- Boost Tools -->
+                <div class="product-card" data-aos="fade-up" data-aos-delay="600">
+                    <div class="product-header">
+                        <div class="product-icon boost-tools">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                        <div class="product-badge">Advanced</div>
+                    </div>
+                    <h3 class="product-title">Professional Boost Tools</h3>
+                    <p class="product-description">Advanced tools for server management and automation. Perfect for large communities.</p>
+                    <div class="product-features">
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>Latest Version</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>Lifetime Updates</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-check"></i>
+                            <span>24/7 Support</span>
+                        </div>
+                    </div>
+                    <div class="product-pricing">
+                        <span class="price-from">Starting at</span>
+                        <span class="price">$19.99</span>
+                    </div>
+                    <button class="btn-product" onclick="openProductModal('boost-tools')">
+                        <i class="fas fa-shopping-cart"></i>
+                        View Options
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2 class="section-title gradient-text">Why Choose BoostHub?</h2>
+                <p class="section-description">We provide the best Discord services with unmatched quality and support</p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="feature-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3 class="feature-title">Instant Delivery</h3>
+                    <p class="feature-description">Get your orders delivered within 30 seconds of payment confirmation. Our automated system ensures lightning-fast processing.</p>
+                </div>
+                
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="feature-title">100% Safe & Legal</h3>
+                    <p class="feature-description">All our services use legitimate methods. No risk of bans or reversals. Your account safety is our top priority.</p>
+                </div>
+                
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
+                    <div class="feature-icon">
+                        <i class="fas fa-headset"></i>
+                    </div>
+                    <h3 class="feature-title">24/7 Support</h3>
+                    <p class="feature-description">Our dedicated support team is available around the clock to help you with any questions or issues you might have.</p>
+                </div>
+                
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="400">
+                    <div class="feature-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <h3 class="feature-title">Best Prices</h3>
+                    <p class="feature-description">We offer the most competitive prices in the market without compromising on quality or service reliability.</p>
+                </div>
+                
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="500">
+                    <div class="feature-icon">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <h3 class="feature-title">Auto Replacement</h3>
+                    <p class="feature-description">If any issues occur with your order, our system automatically provides replacements to ensure your satisfaction.</p>
+                </div>
+                
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="600">
+                    <div class="feature-icon">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <h3 class="feature-title">Secure Payments</h3>
+                    <p class="feature-description">Multiple payment options including PayPal, Stripe, and cryptocurrencies. All transactions are encrypted and secure.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Reviews Section -->
+    <section id="reviews" class="reviews-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2 class="section-title gradient-text">Customer Reviews</h2>
+                <p class="section-description">See what our customers say about our services</p>
+            </div>
+            
+            <div class="reviews-container">
+                <div class="reviews-wrapper" id="reviews-wrapper">
+                    <div class="review-card">
+                        <div class="review-header">
+                            <div class="reviewer-info">
+                                <div class="reviewer-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="reviewer-details">
+                                    <div class="reviewer-name">Alex M.</div>
+                                    <div class="review-date">2 days ago</div>
+                                </div>
+                            </div>
+                            <div class="review-rating">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <p class="review-text">"Amazing service! Got my server boosts instantly and they work perfectly. Customer support was super helpful when I had questions. Definitely recommending to friends!"</p>
+                    </div>
+                    
+                    <div class="review-card">
+                        <div class="review-header">
+                            <div class="reviewer-info">
+                                <div class="reviewer-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="reviewer-details">
+                                    <div class="reviewer-name">Sarah K.</div>
+                                    <div class="review-date">1 week ago</div>
+                                </div>
+                            </div>
+                            <div class="review-rating">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <p class="review-text">"Best prices I've found anywhere! The Nitro tokens work flawlessly and delivery was under 30 seconds. This is my go-to place for all Discord services now."</p>
+                    </div>
+                    
+                    <div class="review-card">
+                        <div class="review-header">
+                            <div class="reviewer-info">
+                                <div class="reviewer-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="reviewer-details">
+                                    <div class="reviewer-name">Mike R.</div>
+                                    <div class="review-date">3 days ago</div>
+                                </div>
+                            </div>
+                            <div class="review-rating">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <p class="review-text">"Purchased Discord Nitro and it was delivered immediately. No issues at all, works exactly as described. Great experience overall!"</p>
+                    </div>
+                    
+                    <div class="review-card">
+                        <div class="review-header">
+                            <div class="reviewer-info">
+                                <div class="reviewer-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="reviewer-details">
+                                    <div class="reviewer-name">Emma L.</div>
+                                    <div class="review-date">5 days ago</div>
+                                </div>
+                            </div>
+                            <div class="review-rating">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <p class="review-text">"Professional service with excellent support. Got help setting up my server boosts and everything works perfectly. Highly recommended!"</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="review-stats" data-aos="fade-up">
+                <div class="stat-item">
+                    <div class="stat-number">4.9</div>
+                    <div class="stat-label">Average Rating</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">15,000+</div>
+                    <div class="stat-label">Reviews</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">98%</div>
+                    <div class="stat-label">Satisfaction</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2 class="section-title gradient-text">Frequently Asked Questions</h2>
+                <p class="section-description">Find answers to common questions about our services</p>
+            </div>
+            
+            <div class="faq-container">
+                <div class="faq-item" data-aos="fade-up" data-aos-delay="100">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How fast is the delivery?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>All our services are delivered instantly through our automated system. Most orders are completed within 30 seconds of payment confirmation. Our system operates 24/7 to ensure immediate delivery.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item" data-aos="fade-up" data-aos-delay="200">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Are your services safe to use?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes, absolutely! All our services use legitimate methods and comply with Discord's terms of service. We never use botted or fake accounts, ensuring your server and account remain completely safe.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item" data-aos="fade-up" data-aos-delay="300">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>What payment methods do you accept?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>We accept PayPal, major credit cards (Visa, MasterCard, American Express), cryptocurrencies (Bitcoin, Ethereum, Litecoin), and various other payment methods through our secure payment processor.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item" data-aos="fade-up" data-aos-delay="400">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Do you offer refunds?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>We offer a satisfaction guarantee. If there are any issues with your order that we cannot resolve, we will provide a full refund. However, due to the digital nature of our products, refunds are only available in specific circumstances.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item" data-aos="fade-up" data-aos-delay="500">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>How long do the boosts last?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Our server boosts come with different duration options: 1 month, 3 months, 6 months, and 12 months. The duration depends on which package you choose. All boosts are guaranteed for the full duration.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item" data-aos="fade-up" data-aos-delay="600">
+                    <div class="faq-question" onclick="toggleFAQ(this)">
+                        <span>Can I get support if I have issues?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes! We provide 24/7 customer support through our Discord server and ticket system. Our team is always ready to help you with any questions or issues you might encounter.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2 class="section-title gradient-text">Get In Touch</h2>
+                <p class="section-description">Need help or have questions? We're here for you 24/7</p>
+            </div>
+            
+            <div class="contact-grid">
+                <div class="contact-info" data-aos="fade-right">
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fab fa-discord"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h3>Discord Server</h3>
+                            <p>Join our community for instant support and updates</p>
+                            <a href="#" class="contact-link" onclick="openDiscord()">Join Server</a>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fas fa-ticket-alt"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h3>Support Tickets</h3>
+                            <p>Create a ticket for personalized assistance</p>
+                            <a href="#" class="contact-link" onclick="openTicketSystem()">Open Ticket</a>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h3>Email Support</h3>
+                            <p>Send us an email for detailed inquiries</p>
+                            <a href="mailto:support@boosthub.com" class="contact-link">support@boosthub.com</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="contact-form" data-aos="fade-left">
+                    <form id="contact-form" onsubmit="submitContactForm(event)">
+                        <div class="form-group">
+                            <label for="name">Name</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="subject">Subject</label>
+                            <select id="subject" name="subject" required>
+                                <option value="">Select a topic</option>
+                                <option value="general">General Inquiry</option>
+                                <option value="support">Technical Support</option>
+                                <option value="billing">Billing Question</option>
+                                <option value="partnership">Partnership</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="message">Message</label>
+                            <textarea id="message" name="message" rows="6" required placeholder="Tell us how we can help you..."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn-submit">
+                            <i class="fas fa-paper-plane"></i>
+                            Send Message
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <i class="fab fa-discord"></i>
+                        <span>BoostHub</span>
+                    </div>
+                    <p class="footer-description">
+                        Your trusted partner for premium Discord services. Fast, reliable, and secure.
+                    </p>
+                    <div class="social-links">
+                        <a href="#" class="social-link" onclick="openDiscord()">
+                            <i class="fab fa-discord"></i>
+                        </a>
+                        <a href="#" class="social-link">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="social-link">
+                            <i class="fab fa-telegram"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h3 class="footer-title">Products</h3>
+                    <ul class="footer-links">
+                        <li><a href="#" onclick="openProductModal('server-boosts')">Server Boosts</a></li>
+                        <li><a href="#" onclick="openProductModal('discord-nitro')">Discord Nitro</a></li>
+                        <li><a href="#" onclick="openProductModal('nitro-tokens')">Nitro Tokens</a></li>
+                        <li><a href="#" onclick="openProductModal('discord-members')">Discord Members</a></li>
+                        <li><a href="#" onclick="openProductModal('aged-accounts')">Aged Accounts</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3 class="footer-title">Support</h3>
+                    <ul class="footer-links">
+                        <li><a href="#faq">FAQ</a></li>
+                        <li><a href="#contact">Contact Us</a></li>
+                        <li><a href="#" onclick="openDiscord()">Discord Server</a></li>
+                        <li><a href="#" onclick="openTicketSystem()">Support Tickets</a></li>
+                        <li><a href="#" onclick="openRefundPolicy()">Refund Policy</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3 class="footer-title">Legal</h3>
+                    <ul class="footer-links">
+                        <li><a href="#" onclick="openTerms()">Terms of Service</a></li>
+                        <li><a href="#" onclick="openPrivacy()">Privacy Policy</a></li>
+                        <li><a href="#" onclick="openRefundPolicy()">Refund Policy</a></li>
+                        <li><a href="#" onclick="openCookiePolicy()">Cookie Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <div class="footer-copyright">
+                    <p>&copy; 2024 BoostHub. All rights reserved.</p>
+                </div>
+                <div class="footer-payments">
+                    <span>We Accept:</span>
+                    <div class="payment-icons">
+                        <i class="fab fa-paypal"></i>
+                        <i class="fab fa-cc-visa"></i>
+                        <i class="fab fa-cc-mastercard"></i>
+                        <i class="fab fa-bitcoin"></i>
+                        <i class="fab fa-ethereum"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modals will be added here via JavaScript -->
+    <div id="modal-container"></div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="./js/main.js"></script>
+    <script src="./js/sellauth-integration.js"></script>
+</body>
+</html>
