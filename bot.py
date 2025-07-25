@@ -7,6 +7,7 @@ from database import DatabaseManager
 from totp_manager import TOTPManager
 from datetime import datetime
 import io
+from views import GenerateAuthView, VerifyAuthView, ClaimRolesView, StaffStatusView
 
 # Load environment variables
 load_dotenv()
@@ -166,6 +167,45 @@ async def staff_list(ctx):
         await ctx.send(f"❌ Error fetching staff list: {str(e)}")
 
 # TOTP Authentication Commands
+@bot.command(name='auth')
+async def auth_panel(ctx):
+    """Show authentication panel with interactive buttons"""
+    try:
+        # Check if user is staff
+        staff_info = await db.get_staff_member(str(ctx.author.id))
+        if not staff_info:
+            embed = discord.Embed(
+                title="❌ Not Registered",
+                description="You are not registered as a staff member. Contact an admin to be added.",
+                color=discord.Color.red()
+            )
+            await ctx.send(embed=embed, ephemeral=True)
+            return
+        
+        embed = discord.Embed(
+            title="🔐 2FA Authentication Panel",
+            description="Choose an action below to manage your 2FA authentication:",
+            color=discord.Color.blue()
+        )
+        
+        # Show current status
+        if staff_info['totp_secret']:
+            status = "🟢 Verified & Active" if staff_info['is_verified'] else "🟡 Generated (Not Verified)"
+            backup_count = len(staff_info['backup_codes'])
+            
+            embed.add_field(name="Current Status", value=status, inline=True)
+            embed.add_field(name="Backup Codes", value=f"{backup_count} remaining", inline=True)
+        else:
+            embed.add_field(name="Current Status", value="🔴 Not Set Up", inline=True)
+        
+        embed.add_field(name="Available Actions", value="Use the buttons below:", inline=False)
+        
+        view = StaffStatusView(bot)
+        await ctx.send(embed=embed, view=view)
+    
+    except Exception as e:
+        await ctx.send(f"❌ Error displaying auth panel: {str(e)}")
+
 @bot.command(name='generate')
 async def generate_totp(ctx):
     """Generate TOTP secret and QR code for authenticator app setup"""
@@ -414,7 +454,7 @@ async def revoke_totp(ctx, member: discord.Member = None):
 
 @bot.command(name='mystatus')
 async def my_status(ctx):
-    """Check your authentication status"""
+    """Check your authentication status with interactive buttons"""
     try:
         staff_info = await db.get_staff_member(str(ctx.author.id))
         
@@ -443,14 +483,14 @@ async def my_status(ctx):
             if not staff_info['is_verified']:
                 embed.add_field(
                     name="⚠️ Action Required",
-                    value="Use `!verify <code>` to activate your 2FA",
+                    value="Use the **Verify Setup** button below to activate your 2FA",
                     inline=False
                 )
         else:
             embed.add_field(name="🔐 2FA Status", value="🔴 Not Set Up", inline=True)
             embed.add_field(
                 name="📋 Next Steps",
-                value="Use `!generate` to set up 2FA authentication",
+                value="Use the **Generate 2FA** button below to set up authentication",
                 inline=False
             )
         
@@ -470,7 +510,10 @@ async def my_status(ctx):
             )
         
         embed.set_thumbnail(url=ctx.author.avatar.url if ctx.author.avatar else None)
-        await ctx.send(embed=embed)
+        
+        # Add interactive buttons
+        view = StaffStatusView(bot)
+        await ctx.send(embed=embed, view=view)
     
     except Exception as e:
         await ctx.send(f"❌ Error fetching status: {str(e)}")
@@ -545,10 +588,11 @@ async def help_auth(ctx):
     embed.add_field(
         name="👤 Staff Commands",
         value="""
+        `!auth` - 🔥 **Interactive 2FA panel with buttons**
         `!generate` - Generate TOTP secret & QR code
         `!verify <code>` - Verify your authenticator setup
         `!claim <code>` - Claim roles with 2FA verification
-        `!mystatus` - Check your authentication status
+        `!mystatus` - Check authentication status (with buttons)
         `!revoke` - Revoke your own 2FA authentication
         """,
         inline=False
@@ -558,10 +602,10 @@ async def help_auth(ctx):
         name="🔐 How 2FA Works",
         value="""
         1. Admin adds you as staff with `!addstaff`
-        2. You generate TOTP secret with `!generate`
-        3. Scan QR code in authenticator app
-        4. Verify setup with `!verify <6-digit-code>`
-        5. Claim roles anytime with `!claim <6-digit-code>`
+        2. Use `!auth` for **interactive button panel** 🔥
+        3. Click **Generate 2FA** → Scan QR code in app
+        4. Click **Verify Setup** → Enter 6-digit code
+        5. Click **Claim Roles** → Get your staff roles!
         """,
         inline=False
     )

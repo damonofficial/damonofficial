@@ -50,11 +50,12 @@ python bot.py
 
 ### For Staff:
 ```
-!generate           # Generate TOTP secret (sent via DM)
-                   # Scan QR code in Google Authenticator
-!verify 123456     # Verify authenticator is working
+!auth              # 🔥 Interactive button panel (RECOMMENDED!)
+                   # Click buttons instead of typing commands
+!generate          # Generate TOTP secret (sent via DM)
+!verify 123456     # Verify authenticator is working  
 !claim 789012      # Claim your roles with 2FA
-!mystatus          # Check your verification status
+!mystatus          # Check status (with buttons)
 ```
 
 ## 🔐 Security Features
