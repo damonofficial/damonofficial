@@ -1,22 +1,24 @@
-# Discord Auth Bot 🤖
+# Discord 2FA Auth Bot 🔐
 
-A secure Discord bot that manages staff roles and generates authentication codes for role transfer between different Discord accounts.
+A secure Discord bot with TOTP (Time-based One-Time Password) authentication for staff role management. Uses authenticator apps like Google Authenticator for secure role verification.
 
 ## Features ✨
 
-- **Staff Management**: Add/remove staff members with their roles saved to database
-- **Auth Code Generation**: Generate secure, time-limited authentication codes
-- **Role Transfer**: Transfer staff roles to new Discord accounts using auth codes
-- **Security**: Codes expire automatically and can only be used once
-- **Audit Trail**: Track all role transfers and auth code usage
-- **Admin Controls**: Comprehensive admin commands for staff management
+- **TOTP Authentication**: Industry-standard 2FA using authenticator apps
+- **QR Code Generation**: Easy setup with any TOTP-compatible authenticator app
+- **Staff Role Management**: Save and restore staff roles securely
+- **Backup Codes**: Emergency access codes when authenticator is unavailable
+- **Verification System**: Multi-step verification process for maximum security
+- **Audit Trail**: Complete logging of all authentication activities
+- **Admin Controls**: Comprehensive management tools for administrators
 
 ## How It Works 🔄
 
-1. **Admin adds staff**: `!addstaff @user` saves the user's roles to database
-2. **Staff generates code**: `!gencode` creates a secure 8-character auth code
-3. **Staff uses code on new account**: `!usecode ABC123XY` transfers all saved roles
-4. **Automatic cleanup**: Codes expire and are marked as used after successful transfer
+1. **Admin adds staff**: `!addstaff @user` saves the user's current roles
+2. **Staff generates TOTP**: `!generate` creates secret key and QR code via DM
+3. **Setup authenticator**: Scan QR code in Google Authenticator or similar app
+4. **Verify setup**: `!verify <6-digit-code>` confirms authenticator is working
+5. **Claim roles**: `!claim <6-digit-code>` assigns saved roles with 2FA verification
 
 ## Installation 🚀
 
@@ -74,22 +76,26 @@ Your bot needs these Discord permissions:
 |---------|-------------|---------|
 | `!addstaff @user` | Add staff member with current roles | `!addstaff @JohnDoe` |
 | `!removestaff @user` | Remove staff member from database | `!removestaff @JohnDoe` |
-| `!stafflist` | List all registered staff members | `!stafflist` |
+| `!stafflist` | List all staff with verification status | `!stafflist` |
+| `!revoke @user` | Revoke user's 2FA authentication | `!revoke @JohnDoe` |
+| `!logs [@user] [limit]` | View authentication logs | `!logs @JohnDoe 20` |
 | `!status` | Show bot status and statistics | `!status` |
 
 ### Staff Commands (For registered staff only)
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `!gencode [hours]` | Generate auth code (default: 24h, max: 168h) | `!gencode 48` |
-| `!mycodes` | View your active auth codes | `!mycodes` |
+| `!generate` | Generate TOTP secret & QR code (via DM) | `!generate` |
+| `!verify <code>` | Verify authenticator app setup | `!verify 123456` |
+| `!claim <code>` | Claim roles with 2FA verification | `!claim 789012` |
+| `!mystatus` | Check your authentication status | `!mystatus` |
+| `!revoke` | Revoke your own 2FA authentication | `!revoke` |
 
-### General Commands (Anyone can use)
+### General Commands
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `!usecode <code>` | Use auth code to claim staff roles | `!usecode ABC123XY` |
-| `!help_auth` | Show help message | `!help_auth` |
+| `!help_auth` | Show help message with all commands | `!help_auth` |
 
 ## Database Schema 📊
 
@@ -123,24 +129,34 @@ The bot uses SQLite with three main tables:
 Admin: !addstaff @StaffMember
 Bot: ✅ Staff Member Added
      Saved Roles: Moderator, Helper, VIP
+     Next Steps: @StaffMember can now use !generate to set up 2FA authentication.
 ```
 
-### Generating Auth Code
+### Generating TOTP Authentication
 ```
-Staff: !gencode 48
-Bot: ✅ Auth code sent to your DMs!
+Staff: !generate
+Bot: ✅ TOTP setup sent to your DMs! Please check your direct messages.
 
-DM: 🔑 Auth Code Generated
-    Code: ABC123XY
-    Expires: 2024-01-15 14:30 UTC
-    Valid For: 48 hours
+DM: 🔐 2FA Authentication Setup
+    [QR CODE IMAGE]
+    Setup Instructions: Download Google Authenticator, scan QR code...
+    Manual Entry Key: JBSW Y3DP EHPK 3PXP
+    Backup Codes: AB12CD34, EF56GH78, ... (10 codes)
 ```
 
-### Using Auth Code
+### Verifying Setup
 ```
-NewAccount: !usecode ABC123XY
-Bot: ✅ Roles Transferred Successfully
-     You have successfully claimed the staff roles from StaffMember!
+Staff: !verify 123456
+Bot: ✅ Verification Successful!
+     Your 2FA authentication has been verified and activated.
+     Next Steps: You can now use !claim <6-digit-code> to transfer roles.
+```
+
+### Claiming Roles
+```
+Staff: !claim 789012
+Bot: ✅ Roles Claimed Successfully!
+     Your staff roles have been successfully assigned!
      Roles Assigned: Moderator, Helper, VIP
 ```
 

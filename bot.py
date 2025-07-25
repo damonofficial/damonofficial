@@ -4,7 +4,9 @@ import os
 from dotenv import load_dotenv
 import asyncio
 from database import DatabaseManager
-from datetime import datetime, timedelta
+from totp_manager import TOTPManager
+from datetime import datetime
+import io
 
 # Load environment variables
 load_dotenv()
@@ -21,6 +23,7 @@ intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 db = DatabaseManager()
+totp_manager = TOTPManager()
 
 # Utility functions
 def is_admin():
@@ -91,6 +94,11 @@ async def add_staff(ctx, member: discord.Member):
                 value=", ".join(role_names) if role_names else "None",
                 inline=False
             )
+            embed.add_field(
+                name="Next Steps",
+                value=f"{member.mention} can now use `!generate` to set up 2FA authentication.",
+                inline=False
+            )
             embed.set_thumbnail(url=member.avatar.url if member.avatar else None)
             await ctx.send(embed=embed)
         else:
@@ -122,7 +130,7 @@ async def remove_staff(ctx, member: discord.Member):
 @bot.command(name='stafflist')
 @is_admin()
 async def staff_list(ctx):
-    """List all staff members"""
+    """List all staff members with their verification status"""
     try:
         staff_members = await db.get_staff_list()
         
@@ -140,10 +148,12 @@ async def staff_list(ctx):
             user = bot.get_user(int(staff['user_id']))
             username = user.display_name if user else staff['username']
             
+            status = "🟢 Verified" if staff['is_verified'] else "🔴 Not Verified"
             role_count = len(staff['roles'])
+            
             embed.add_field(
                 name=f"{i+1}. {username}",
-                value=f"ID: {staff['user_id']}\nRoles: {role_count}\nAdded: {format_datetime(staff['created_at'])}",
+                value=f"ID: {staff['user_id']}\nRoles: {role_count}\nStatus: {status}\nAdded: {format_datetime(staff['created_at'])}",
                 inline=True
             )
         
@@ -155,10 +165,87 @@ async def staff_list(ctx):
     except Exception as e:
         await ctx.send(f"❌ Error fetching staff list: {str(e)}")
 
-# Auth Code Commands
-@bot.command(name='gencode')
-async def generate_code(ctx, hours: int = 24):
-    """Generate an auth code for yourself (staff only)"""
+# TOTP Authentication Commands
+@bot.command(name='generate')
+async def generate_totp(ctx):
+    """Generate TOTP secret and QR code for authenticator app setup"""
+    try:
+        # Check if user is staff
+        staff_info = await db.get_staff_member(str(ctx.author.id))
+        if not staff_info:
+            await ctx.send("❌ You are not registered as a staff member. Contact an admin to be added.")
+            return
+        
+        # Generate TOTP secret
+        totp_data = await db.generate_totp_secret(str(ctx.author.id))
+        
+        if not totp_data:
+            await ctx.send("❌ Failed to generate TOTP secret.")
+            return
+        
+        # Generate QR code
+        account_name = f"{ctx.author.display_name}@{ctx.guild.name}"
+        qr_image = totp_manager.generate_qr_code(totp_data['secret'], account_name)
+        
+        # Create DM embed
+        embed = discord.Embed(
+            title="🔐 2FA Authentication Setup",
+            description="Your TOTP authentication has been generated!",
+            color=discord.Color.gold()
+        )
+        
+        embed.add_field(
+            name="📱 Setup Instructions",
+            value="""
+            1. **Download an authenticator app:**
+               • Google Authenticator
+               • Microsoft Authenticator
+               • Authy
+               • Any TOTP-compatible app
+            
+            2. **Add this account to your app:**
+               • Scan the QR code below, OR
+               • Manually enter the secret key
+            
+            3. **Verify your setup:**
+               • Use `!verify <6-digit-code>` in the server
+            """,
+            inline=False
+        )
+        
+        embed.add_field(
+            name="🔑 Manual Entry Key",
+            value=f"```{totp_data['formatted_secret']}```",
+            inline=False
+        )
+        
+        embed.add_field(
+            name="🆘 Backup Codes",
+            value=f"Save these codes securely! You can use them if you lose access to your authenticator app.\n```{chr(10).join(totp_data['backup_codes'])}```",
+            inline=False
+        )
+        
+        embed.add_field(
+            name="⚠️ Important",
+            value="• Keep your secret key and backup codes secure!\n• You must verify within the server to activate authentication\n• This replaces any previous TOTP setup",
+            inline=False
+        )
+        
+        # Try to send DM with QR code
+        try:
+            qr_file = discord.File(qr_image, filename="qr_code.png")
+            embed.set_image(url="attachment://qr_code.png")
+            await ctx.author.send(embed=embed, file=qr_file)
+            await ctx.send("✅ TOTP setup sent to your DMs! Please check your direct messages.")
+        except discord.Forbidden:
+            await ctx.send("❌ I couldn't send you a DM. Please enable DMs from server members and try again.")
+    
+    except Exception as e:
+        await ctx.send(f"❌ Error generating TOTP: {str(e)}")
+
+@bot.command(name='verify')
+async def verify_totp(ctx, token: str):
+    """Verify TOTP token or backup code"""
     try:
         # Check if user is staff
         staff_info = await db.get_staff_member(str(ctx.author.id))
@@ -166,63 +253,63 @@ async def generate_code(ctx, hours: int = 24):
             await ctx.send("❌ You are not registered as a staff member.")
             return
         
-        if hours < 1 or hours > 168:  # Max 1 week
-            await ctx.send("❌ Hours must be between 1 and 168 (1 week).")
+        if not staff_info['totp_secret']:
+            await ctx.send("❌ You haven't generated a TOTP secret yet. Use `!generate` first.")
             return
         
-        auth_code = await db.generate_auth_code(str(ctx.author.id), hours)
+        # Determine if it's a backup code or TOTP token
+        is_backup_code = len(token) == 8 and token.isalnum()
         
-        if auth_code:
-            expires_at = datetime.now() + timedelta(hours=hours)
-            
+        # Verify the token
+        result = await db.verify_totp(str(ctx.author.id), token, is_backup_code)
+        
+        if result['success']:
             embed = discord.Embed(
-                title="🔑 Auth Code Generated",
-                description="Your auth code has been generated successfully!",
-                color=discord.Color.gold()
+                title="✅ Verification Successful!",
+                description="Your 2FA authentication has been verified and activated.",
+                color=discord.Color.green()
             )
-            embed.add_field(name="Code", value=f"```{auth_code}```", inline=False)
-            embed.add_field(name="Expires", value=expires_at.strftime("%Y-%m-%d %H:%M UTC"), inline=True)
-            embed.add_field(name="Valid For", value=f"{hours} hours", inline=True)
+            
+            if result['method'] == 'backup_code':
+                embed.add_field(
+                    name="🆘 Backup Code Used",
+                    value=f"You have {result.get('remaining_codes', 0)} backup codes remaining.",
+                    inline=False
+                )
+            
             embed.add_field(
-                name="Usage",
-                value=f"Use `!usecode {auth_code}` on your new account to transfer roles.",
+                name="🎯 Next Steps",
+                value="You can now use `!claim <6-digit-code>` to transfer your roles to this account.",
                 inline=False
             )
-            embed.set_footer(text="⚠️ Keep this code secure! Anyone with this code can claim your roles.")
             
-            # Try to send DM first, fallback to channel
-            try:
-                await ctx.author.send(embed=embed)
-                await ctx.send("✅ Auth code sent to your DMs!")
-            except discord.Forbidden:
-                await ctx.send(embed=embed)
-                await ctx.send("⚠️ Couldn't send DM. Please delete this message after saving your code!")
+            await ctx.send(embed=embed)
         else:
-            await ctx.send("❌ Failed to generate auth code.")
+            await ctx.send(f"❌ Verification failed: {result['error']}")
     
     except Exception as e:
-        await ctx.send(f"❌ Error generating auth code: {str(e)}")
+        await ctx.send(f"❌ Error verifying token: {str(e)}")
 
-@bot.command(name='usecode')
-async def use_code(ctx, code: str):
-    """Use an auth code to claim staff roles"""
+@bot.command(name='claim')
+async def claim_roles(ctx, token: str):
+    """Claim staff roles after TOTP verification"""
     try:
-        # Validate the auth code
-        auth_info = await db.validate_auth_code(code.upper())
-        
-        if not auth_info:
-            await ctx.send("❌ Invalid, expired, or already used auth code.")
+        # Check if user is staff
+        staff_info = await db.get_staff_member(str(ctx.author.id))
+        if not staff_info:
+            await ctx.send("❌ You are not registered as a staff member.")
             return
         
-        # Check if user is trying to use their own code
-        if auth_info['original_user_id'] == str(ctx.author.id):
-            await ctx.send("❌ You cannot use your own auth code.")
+        if not staff_info['is_verified']:
+            await ctx.send("❌ You must verify your 2FA first using `!verify <code>`.")
             return
         
-        # Check if user already has staff roles
-        existing_staff = await db.get_staff_member(str(ctx.author.id))
-        if existing_staff:
-            await ctx.send("❌ You are already registered as a staff member.")
+        # Verify TOTP for role claiming
+        is_backup_code = len(token) == 8 and token.isalnum()
+        verification = await db.verify_totp(str(ctx.author.id), token, is_backup_code)
+        
+        if not verification['success']:
+            await ctx.send(f"❌ Invalid authentication code: {verification['error']}")
             return
         
         # Get the roles to assign
@@ -230,30 +317,34 @@ async def use_code(ctx, code: str):
         roles_to_assign = []
         failed_roles = []
         
-        for role_id in auth_info['roles']:
+        for role_id in staff_info['roles']:
             role = guild.get_role(int(role_id))
             if role and role.name != "@everyone":
-                roles_to_assign.append(role)
+                # Check if user already has this role
+                if role not in ctx.author.roles:
+                    roles_to_assign.append(role)
             else:
                 failed_roles.append(role_id)
         
         if not roles_to_assign:
-            await ctx.send("❌ No valid roles found to assign.")
+            await ctx.send("✅ You already have all available roles assigned!")
             return
         
         # Assign the roles
         try:
-            await ctx.author.add_roles(*roles_to_assign, reason=f"Auth code transfer from {auth_info['username']}")
+            await ctx.author.add_roles(*roles_to_assign, reason=f"2FA verified role claim")
             
-            # Mark the code as used and add user as staff
-            success = await db.use_auth_code(code.upper(), str(ctx.author.id))
-            if success:
-                await db.add_staff_member(str(ctx.author.id), ctx.author.display_name, auth_info['roles'])
+            # Record the transfer
+            await db.transfer_roles_with_verification(
+                str(ctx.author.id), 
+                str(ctx.author.id), 
+                verification['method']
+            )
             
             # Send success message
             embed = discord.Embed(
-                title="✅ Roles Transferred Successfully",
-                description=f"You have successfully claimed the staff roles from **{auth_info['username']}**!",
+                title="✅ Roles Claimed Successfully!",
+                description="Your staff roles have been successfully assigned!",
                 color=discord.Color.green()
             )
             
@@ -263,7 +354,7 @@ async def use_code(ctx, code: str):
             if failed_roles:
                 embed.add_field(
                     name="⚠️ Some roles couldn't be assigned",
-                    value=f"Role IDs: {', '.join(failed_roles)}",
+                    value=f"Role IDs no longer exist: {', '.join(failed_roles)}",
                     inline=False
                 )
             
@@ -271,65 +362,163 @@ async def use_code(ctx, code: str):
             await ctx.send(embed=embed)
             
         except discord.Forbidden:
-            await ctx.send("❌ I don't have permission to assign these roles.")
+            await ctx.send("❌ I don't have permission to assign these roles. Contact an admin.")
         except discord.HTTPException as e:
             await ctx.send(f"❌ Failed to assign roles: {str(e)}")
     
     except Exception as e:
-        await ctx.send(f"❌ Error using auth code: {str(e)}")
+        await ctx.send(f"❌ Error claiming roles: {str(e)}")
 
-@bot.command(name='mycodes')
-async def my_codes(ctx):
-    """View your active auth codes"""
+@bot.command(name='revoke')
+async def revoke_totp(ctx, member: discord.Member = None):
+    """Revoke TOTP authentication (admins can revoke for others)"""
     try:
+        # Determine target user
+        if member and ctx.author.guild_permissions.administrator:
+            target_user_id = str(member.id)
+            target_name = member.display_name
+        else:
+            target_user_id = str(ctx.author.id)
+            target_name = ctx.author.display_name
+        
         # Check if user is staff
+        staff_info = await db.get_staff_member(target_user_id)
+        if not staff_info:
+            await ctx.send("❌ Target user is not registered as a staff member.")
+            return
+        
+        if not staff_info['totp_secret']:
+            await ctx.send("❌ No TOTP authentication found for this user.")
+            return
+        
+        # Revoke TOTP
+        success = await db.revoke_totp(target_user_id)
+        
+        if success:
+            embed = discord.Embed(
+                title="✅ TOTP Authentication Revoked",
+                description=f"2FA authentication has been revoked for **{target_name}**.",
+                color=discord.Color.orange()
+            )
+            embed.add_field(
+                name="Next Steps",
+                value="User must use `!generate` to set up new 2FA authentication.",
+                inline=False
+            )
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send("❌ Failed to revoke TOTP authentication.")
+    
+    except Exception as e:
+        await ctx.send(f"❌ Error revoking TOTP: {str(e)}")
+
+@bot.command(name='mystatus')
+async def my_status(ctx):
+    """Check your authentication status"""
+    try:
         staff_info = await db.get_staff_member(str(ctx.author.id))
+        
         if not staff_info:
             await ctx.send("❌ You are not registered as a staff member.")
             return
         
-        auth_codes = await db.get_active_auth_codes(str(ctx.author.id))
-        
-        if not auth_codes:
-            await ctx.send("📝 You have no active auth codes.")
-            return
-        
         embed = discord.Embed(
-            title="🔑 Your Active Auth Codes",
-            description=f"You have {len(auth_codes)} active auth code(s)",
+            title="🔐 Your Authentication Status",
             color=discord.Color.blue()
         )
         
-        for i, code_info in enumerate(auth_codes[:5]):  # Limit to 5
-            status = "🔴 Used" if code_info['is_used'] else "🟢 Available"
-            expires_at = format_datetime(code_info['expires_at'])
+        # Basic info
+        embed.add_field(name="👤 Username", value=staff_info['username'], inline=True)
+        embed.add_field(name="🆔 User ID", value=staff_info['user_id'], inline=True)
+        embed.add_field(name="📝 Roles Saved", value=str(len(staff_info['roles'])), inline=True)
+        
+        # Authentication status
+        if staff_info['totp_secret']:
+            status = "🟢 Verified" if staff_info['is_verified'] else "🟡 Generated (Not Verified)"
+            backup_count = len(staff_info['backup_codes'])
+            
+            embed.add_field(name="🔐 2FA Status", value=status, inline=True)
+            embed.add_field(name="🆘 Backup Codes", value=f"{backup_count} remaining", inline=True)
+            
+            if not staff_info['is_verified']:
+                embed.add_field(
+                    name="⚠️ Action Required",
+                    value="Use `!verify <code>` to activate your 2FA",
+                    inline=False
+                )
+        else:
+            embed.add_field(name="🔐 2FA Status", value="🔴 Not Set Up", inline=True)
+            embed.add_field(
+                name="📋 Next Steps",
+                value="Use `!generate` to set up 2FA authentication",
+                inline=False
+            )
+        
+        # Recent activity
+        recent_logs = await db.get_auth_logs(str(ctx.author.id), 5)
+        if recent_logs:
+            log_text = []
+            for log in recent_logs[:3]:
+                action = log['action'].replace('_', ' ').title()
+                timestamp = format_datetime(log['timestamp'])
+                log_text.append(f"• {action} - {timestamp}")
             
             embed.add_field(
-                name=f"Code #{i+1}",
-                value=f"```{code_info['code']}```\nStatus: {status}\nExpires: {expires_at}",
+                name="📊 Recent Activity",
+                value="\n".join(log_text),
+                inline=False
+            )
+        
+        embed.set_thumbnail(url=ctx.author.avatar.url if ctx.author.avatar else None)
+        await ctx.send(embed=embed)
+    
+    except Exception as e:
+        await ctx.send(f"❌ Error fetching status: {str(e)}")
+
+# Admin utility commands
+@bot.command(name='logs')
+@is_admin()
+async def view_logs(ctx, member: discord.Member = None, limit: int = 10):
+    """View authentication logs"""
+    try:
+        user_id = str(member.id) if member else None
+        logs = await db.get_auth_logs(user_id, limit)
+        
+        if not logs:
+            await ctx.send("📝 No authentication logs found.")
+            return
+        
+        embed = discord.Embed(
+            title="📊 Authentication Logs",
+            description=f"Recent {len(logs)} entries" + (f" for {member.display_name}" if member else ""),
+            color=discord.Color.blue()
+        )
+        
+        for i, log in enumerate(logs[:10]):
+            user = bot.get_user(int(log['user_id']))
+            username = user.display_name if user else log['user_id']
+            action = log['action'].replace('_', ' ').title()
+            timestamp = format_datetime(log['timestamp'])
+            details = log['details'] or ""
+            
+            embed.add_field(
+                name=f"{i+1}. {username}",
+                value=f"**{action}**\n{details}\n*{timestamp}*",
                 inline=True
             )
         
-        if len(auth_codes) > 5:
-            embed.set_footer(text=f"Showing first 5 of {len(auth_codes)} codes")
-        
-        # Try to send DM first
-        try:
-            await ctx.author.send(embed=embed)
-            await ctx.send("✅ Auth codes sent to your DMs!")
-        except discord.Forbidden:
-            await ctx.send(embed=embed)
+        await ctx.send(embed=embed)
     
     except Exception as e:
-        await ctx.send(f"❌ Error fetching auth codes: {str(e)}")
+        await ctx.send(f"❌ Error fetching logs: {str(e)}")
 
-# Utility Commands
+# Help and utility commands
 @bot.command(name='help_auth')
 async def help_auth(ctx):
-    """Show help for auth commands"""
+    """Show help for authentication commands"""
     embed = discord.Embed(
-        title="🤖 Auth Bot Help",
-        description="Discord bot for staff role management and authentication",
+        title="🔐 2FA Auth Bot Help",
+        description="Discord bot with TOTP 2FA authentication for staff role management",
         color=discord.Color.purple()
     )
     
@@ -343,9 +532,11 @@ async def help_auth(ctx):
     embed.add_field(
         name=f"🔧 Admin Commands ({admin_name} only)",
         value="""
-        `!addstaff @user` - Add a staff member with their current roles
-        `!removestaff @user` - Remove a staff member
-        `!stafflist` - List all staff members
+        `!addstaff @user` - Add staff member with current roles
+        `!removestaff @user` - Remove staff member
+        `!stafflist` - List all staff with verification status
+        `!revoke @user` - Revoke user's 2FA authentication
+        `!logs [@user] [limit]` - View authentication logs
         """,
         inline=False
     )
@@ -354,34 +545,40 @@ async def help_auth(ctx):
     embed.add_field(
         name="👤 Staff Commands",
         value="""
-        `!gencode [hours]` - Generate an auth code (default: 24h, max: 168h)
-        `!mycodes` - View your active auth codes
-        """,
-        inline=False
-    )
-    
-    # General commands
-    embed.add_field(
-        name="🔑 Auth Commands",
-        value="""
-        `!usecode <code>` - Use an auth code to claim staff roles
-        `!help_auth` - Show this help message
+        `!generate` - Generate TOTP secret & QR code
+        `!verify <code>` - Verify your authenticator setup
+        `!claim <code>` - Claim roles with 2FA verification
+        `!mystatus` - Check your authentication status
+        `!revoke` - Revoke your own 2FA authentication
         """,
         inline=False
     )
     
     embed.add_field(
-        name="ℹ️ How it works",
+        name="🔐 How 2FA Works",
         value="""
-        1. Admins add staff members with `!addstaff`
-        2. Staff generate auth codes with `!gencode`
-        3. Staff use codes on new accounts with `!usecode`
-        4. Roles are automatically transferred!
+        1. Admin adds you as staff with `!addstaff`
+        2. You generate TOTP secret with `!generate`
+        3. Scan QR code in authenticator app
+        4. Verify setup with `!verify <6-digit-code>`
+        5. Claim roles anytime with `!claim <6-digit-code>`
         """,
         inline=False
     )
     
-    embed.set_footer(text="⚠️ Keep auth codes secure! Anyone with a code can claim the associated roles.")
+    embed.add_field(
+        name="📱 Supported Authenticator Apps",
+        value="• Google Authenticator\n• Microsoft Authenticator\n• Authy\n• Any TOTP-compatible app",
+        inline=True
+    )
+    
+    embed.add_field(
+        name="🆘 Emergency Access",
+        value="Use backup codes if you lose\naccess to your authenticator app",
+        inline=True
+    )
+    
+    embed.set_footer(text="⚠️ Keep your authenticator secure! It's your key to staff roles.")
     await ctx.send(embed=embed)
 
 @bot.command(name='status')
@@ -389,19 +586,25 @@ async def help_auth(ctx):
 async def bot_status(ctx):
     """Show bot status and statistics"""
     try:
-        staff_count = len(await db.get_staff_list())
+        staff_list = await db.get_staff_list()
+        verified_count = sum(1 for staff in staff_list if staff['is_verified'])
         
         embed = discord.Embed(
             title="📊 Bot Status",
             color=discord.Color.blue()
         )
         
-        embed.add_field(name="🔧 Bot", value=f"{bot.user.name}#{bot.user.discriminator}", inline=True)
-        embed.add_field(name="📈 Uptime", value="Online", inline=True)
-        embed.add_field(name="👥 Staff Members", value=str(staff_count), inline=True)
+        embed.add_field(name="🔧 Bot", value=f"{bot.user.name}", inline=True)
+        embed.add_field(name="📈 Status", value="Online", inline=True)
+        embed.add_field(name="🏓 Latency", value=f"{round(bot.latency * 1000)}ms", inline=True)
+        
+        embed.add_field(name="👥 Total Staff", value=str(len(staff_list)), inline=True)
+        embed.add_field(name="✅ Verified Staff", value=str(verified_count), inline=True)
+        embed.add_field(name="⏳ Pending Verification", value=str(len(staff_list) - verified_count), inline=True)
+        
         embed.add_field(name="🌐 Server", value=ctx.guild.name, inline=True)
         embed.add_field(name="📁 Database", value="Connected", inline=True)
-        embed.add_field(name="🏓 Latency", value=f"{round(bot.latency * 1000)}ms", inline=True)
+        embed.add_field(name="🔐 2FA System", value="Active", inline=True)
         
         await ctx.send(embed=embed)
     
