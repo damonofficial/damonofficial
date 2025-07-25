@@ -149,7 +149,13 @@ async def staff_list(ctx):
             user = bot.get_user(int(staff['user_id']))
             username = user.display_name if user else staff['username']
             
-            status = "🟢 Verified" if staff['is_verified'] else "🔴 Not Verified"
+            if staff['is_verified'] and staff['is_available_for_transfer']:
+                status = "🟢 Verified & Transferable"
+            elif staff['is_verified']:
+                status = "🟡 Verified (Not Transferable)"
+            else:
+                status = "🔴 Not Verified"
+            
             role_count = len(staff['roles'])
             
             embed.add_field(
@@ -285,7 +291,7 @@ async def generate_totp(ctx):
 
 @bot.command(name='verify')
 async def verify_totp(ctx, token: str):
-    """Verify TOTP token or backup code"""
+    """Verify TOTP token or backup code (for original account only)"""
     try:
         # Check if user is staff
         staff_info = await db.get_staff_member(str(ctx.author.id))
@@ -306,7 +312,7 @@ async def verify_totp(ctx, token: str):
         if result['success']:
             embed = discord.Embed(
                 title="✅ Verification Successful!",
-                description="Your 2FA authentication has been verified and activated.",
+                description="Your 2FA authentication has been verified and your roles are now available for transfer!",
                 color=discord.Color.green()
             )
             
@@ -318,8 +324,14 @@ async def verify_totp(ctx, token: str):
                 )
             
             embed.add_field(
-                name="🎯 Next Steps",
-                value="You can now use `!claim <6-digit-code>` to transfer your roles to this account.",
+                name="🔑 TOTP Code Ready",
+                value="Your current TOTP codes can now be used on **any account** to transfer your roles.",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="🎯 How to Transfer",
+                value="On your **new account**, use: `!claim <6-digit-code>` with a current TOTP code.",
                 inline=False
             )
             
@@ -332,24 +344,36 @@ async def verify_totp(ctx, token: str):
 
 @bot.command(name='claim')
 async def claim_roles(ctx, token: str):
-    """Claim staff roles after TOTP verification"""
+    """Claim staff roles using TOTP code (works on any account)"""
     try:
-        # Check if user is staff
+        # First, check if this is the original account trying to claim their own roles
         staff_info = await db.get_staff_member(str(ctx.author.id))
-        if not staff_info:
-            await ctx.send("❌ You are not registered as a staff member.")
+        
+        if staff_info and staff_info['is_verified']:
+            # This is the original account - verify with their own TOTP
+            is_backup_code = len(token) == 8 and token.isalnum()
+            verification = await db.verify_totp(str(ctx.author.id), token, is_backup_code)
+            
+            if verification['success']:
+                target_staff = staff_info
+                await ctx.send("✅ You already have access to these roles on this account!")
+                return
+        
+        # This is a different account - find the staff member by TOTP code
+        target_staff = await db.get_staff_by_totp_secret(token)
+        
+        if not target_staff:
+            await ctx.send("❌ Invalid authentication code or no roles available for transfer.")
             return
         
-        if not staff_info['is_verified']:
-            await ctx.send("❌ You must verify your 2FA first using `!verify <code>`.")
+        if not target_staff['is_available_for_transfer']:
+            await ctx.send("❌ This TOTP code has not been verified yet. The original account must verify first.")
             return
         
-        # Verify TOTP for role claiming
-        is_backup_code = len(token) == 8 and token.isalnum()
-        verification = await db.verify_totp(str(ctx.author.id), token, is_backup_code)
-        
-        if not verification['success']:
-            await ctx.send(f"❌ Invalid authentication code: {verification['error']}")
+        # Check if user already has staff roles
+        existing_staff = await db.get_staff_member(str(ctx.author.id))
+        if existing_staff:
+            await ctx.send("❌ You are already registered as a staff member on this account.")
             return
         
         # Get the roles to assign
@@ -357,7 +381,7 @@ async def claim_roles(ctx, token: str):
         roles_to_assign = []
         failed_roles = []
         
-        for role_id in staff_info['roles']:
+        for role_id in target_staff['roles']:
             role = guild.get_role(int(role_id))
             if role and role.name != "@everyone":
                 # Check if user already has this role
@@ -372,24 +396,29 @@ async def claim_roles(ctx, token: str):
         
         # Assign the roles
         try:
-            await ctx.author.add_roles(*roles_to_assign, reason=f"2FA verified role claim")
+            await ctx.author.add_roles(*roles_to_assign, reason=f"2FA verified role transfer from {target_staff['username']}")
+            
+            # Add the new user as staff with the same roles
+            await db.add_staff_member(str(ctx.author.id), ctx.author.display_name, [str(role.id) for role in roles_to_assign])
             
             # Record the transfer
             await db.transfer_roles_with_verification(
+                target_staff['user_id'], 
                 str(ctx.author.id), 
-                str(ctx.author.id), 
-                verification['method']
+                'totp'
             )
             
             # Send success message
             embed = discord.Embed(
-                title="✅ Roles Claimed Successfully!",
-                description="Your staff roles have been successfully assigned!",
+                title="✅ Roles Transferred Successfully!",
+                description=f"You have successfully claimed the staff roles from **{target_staff['username']}**!",
                 color=discord.Color.green()
             )
             
             role_names = [role.name for role in roles_to_assign]
             embed.add_field(name="Roles Assigned", value=", ".join(role_names), inline=False)
+            embed.add_field(name="Original Account", value=target_staff['username'], inline=True)
+            embed.add_field(name="Transfer Method", value="TOTP Verification", inline=True)
             
             if failed_roles:
                 embed.add_field(
@@ -474,20 +503,37 @@ async def my_status(ctx):
         
         # Authentication status
         if staff_info['totp_secret']:
-            status = "🟢 Verified" if staff_info['is_verified'] else "🟡 Generated (Not Verified)"
+            if staff_info['is_verified'] and staff_info['is_available_for_transfer']:
+                status = "🟢 Verified & Ready for Transfer"
+                transfer_status = "✅ Available"
+            elif staff_info['is_verified']:
+                status = "🟡 Verified (Transfer Not Available)"
+                transfer_status = "❌ Not Available"
+            else:
+                status = "🟡 Generated (Not Verified)"
+                transfer_status = "❌ Verify Required"
+            
             backup_count = len(staff_info['backup_codes'])
             
             embed.add_field(name="🔐 2FA Status", value=status, inline=True)
+            embed.add_field(name="🔄 Role Transfer", value=transfer_status, inline=True)
             embed.add_field(name="🆘 Backup Codes", value=f"{backup_count} remaining", inline=True)
             
             if not staff_info['is_verified']:
                 embed.add_field(
                     name="⚠️ Action Required",
-                    value="Use the **Verify Setup** button below to activate your 2FA",
+                    value="Use the **Verify Setup** button below to enable role transfers",
+                    inline=False
+                )
+            elif staff_info['is_available_for_transfer']:
+                embed.add_field(
+                    name="✅ Ready for Transfer",
+                    value="Your TOTP codes can now be used on **any account** to transfer roles",
                     inline=False
                 )
         else:
             embed.add_field(name="🔐 2FA Status", value="🔴 Not Set Up", inline=True)
+            embed.add_field(name="🔄 Role Transfer", value="❌ Not Available", inline=True)
             embed.add_field(
                 name="📋 Next Steps",
                 value="Use the **Generate 2FA** button below to set up authentication",
@@ -599,13 +645,16 @@ async def help_auth(ctx):
     )
     
     embed.add_field(
-        name="🔐 How 2FA Works",
+        name="🔐 How 2FA Role Transfer Works",
         value="""
+        **On Original Account:**
         1. Admin adds you as staff with `!addstaff`
-        2. Use `!auth` for **interactive button panel** 🔥
-        3. Click **Generate 2FA** → Scan QR code in app
-        4. Click **Verify Setup** → Enter 6-digit code
-        5. Click **Claim Roles** → Get your staff roles!
+        2. Use `!auth` → **Generate 2FA** → Scan QR code
+        3. **Verify Setup** → Roles become transferable
+        
+        **On New Account:**
+        4. Use `!claim <6-digit-code>` with current TOTP
+        5. Roles transferred instantly! 🎉
         """,
         inline=False
     )

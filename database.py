@@ -20,7 +20,8 @@ class DatabaseManager:
                     username TEXT NOT NULL,
                     roles TEXT NOT NULL,  -- JSON string of role IDs
                     totp_secret TEXT NULL,  -- TOTP secret key
-                    is_verified BOOLEAN DEFAULT FALSE,  -- Whether TOTP is verified
+                    is_verified BOOLEAN DEFAULT FALSE,  -- Whether TOTP is verified on original account
+                    is_available_for_transfer BOOLEAN DEFAULT FALSE,  -- Whether roles can be transferred to new account
                     backup_codes TEXT NULL,  -- JSON array of backup codes
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -90,7 +91,7 @@ class DatabaseManager:
             async with aiosqlite.connect(self.db_path) as db:
                 cursor = await db.execute("""
                     SELECT id, user_id, username, roles, totp_secret, is_verified, 
-                           backup_codes, created_at, updated_at
+                           is_available_for_transfer, backup_codes, created_at, updated_at
                     FROM staff WHERE user_id = ?
                 """, (user_id,))
                 row = await cursor.fetchone()
@@ -103,9 +104,10 @@ class DatabaseManager:
                         'roles': json.loads(row[3]),
                         'totp_secret': row[4],
                         'is_verified': bool(row[5]),
-                        'backup_codes': json.loads(row[6]) if row[6] else [],
-                        'created_at': row[7],
-                        'updated_at': row[8]
+                        'is_available_for_transfer': bool(row[6]),
+                        'backup_codes': json.loads(row[7]) if row[7] else [],
+                        'created_at': row[8],
+                        'updated_at': row[9]
                     }
                 return None
         except Exception as e:
@@ -172,16 +174,16 @@ class DatabaseManager:
             else:
                 # Verify TOTP token
                 if self.totp_manager.verify_token(staff['totp_secret'], token):
-                    # Mark as verified
+                    # Mark as verified and available for transfer
                     async with aiosqlite.connect(self.db_path) as db:
                         await db.execute("""
                             UPDATE staff 
-                            SET is_verified = TRUE, updated_at = CURRENT_TIMESTAMP
+                            SET is_verified = TRUE, is_available_for_transfer = TRUE, updated_at = CURRENT_TIMESTAMP
                             WHERE user_id = ?
                         """, (user_id,))
                         await db.commit()
                     
-                    await self.log_action(user_id, "verify_success", "TOTP token verified")
+                    await self.log_action(user_id, "verify_success", "TOTP token verified - roles available for transfer")
                     return {'success': True, 'method': 'totp'}
                 else:
                     await self.log_action(user_id, "verify_fail", "Invalid TOTP token")
@@ -206,6 +208,32 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error revoking TOTP: {e}")
             return False
+    
+    async def get_staff_by_totp_secret(self, totp_code: str) -> Optional[Dict]:
+        """Find staff member by validating their TOTP code"""
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                cursor = await db.execute("""
+                    SELECT user_id, username, roles, totp_secret, is_verified, is_available_for_transfer
+                    FROM staff WHERE totp_secret IS NOT NULL AND is_available_for_transfer = TRUE
+                """)
+                rows = await cursor.fetchall()
+                
+                for row in rows:
+                    user_id, username, roles, secret, is_verified, is_available = row
+                    if self.totp_manager.verify_token(secret, totp_code):
+                        return {
+                            'user_id': user_id,
+                            'username': username,
+                            'roles': json.loads(roles),
+                            'totp_secret': secret,
+                            'is_verified': bool(is_verified),
+                            'is_available_for_transfer': bool(is_available)
+                        }
+                return None
+        except Exception as e:
+            print(f"Error finding staff by TOTP: {e}")
+            return None
     
     async def transfer_roles_with_verification(self, staff_user_id: str, new_user_id: str, verification_method: str) -> bool:
         """Record a role transfer after successful verification"""
@@ -233,7 +261,7 @@ class DatabaseManager:
         try:
             async with aiosqlite.connect(self.db_path) as db:
                 cursor = await db.execute("""
-                    SELECT user_id, username, roles, is_verified, created_at, updated_at
+                    SELECT user_id, username, roles, is_verified, is_available_for_transfer, created_at, updated_at
                     FROM staff ORDER BY username
                 """)
                 rows = await cursor.fetchall()
@@ -243,8 +271,9 @@ class DatabaseManager:
                     'username': row[1],
                     'roles': json.loads(row[2]),
                     'is_verified': bool(row[3]),
-                    'created_at': row[4],
-                    'updated_at': row[5]
+                    'is_available_for_transfer': bool(row[4]),
+                    'created_at': row[5],
+                    'updated_at': row[6]
                 } for row in rows]
         except Exception as e:
             print(f"Error getting staff list: {e}")
